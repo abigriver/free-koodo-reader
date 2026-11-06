@@ -158,11 +158,26 @@ class TextToSpeech extends React.Component<
           ConfigService.setReaderConfig("voiceEngine", "system");
         }
       }
-      if (!voiceName && !voiceEngine && this.voices.length > 0) {
-        let defaultVoice =
-          this.voices.find(
-            (item) => item.plugin !== "official-ai-voice-plugin"
-          ) || this.voices[0];
+      const localTTSVoice =
+        this.voices.find((item) => item.plugin === "indextts2-voice-plugin") ||
+        this.voices.find(
+          (item) =>
+            item.plugin !== "system" &&
+            item.plugin !== "official-ai-voice-plugin"
+        );
+      const storedVoiceExists = this.voices.some(
+        (item) => item.name === ConfigService.getReaderConfig("voiceName")
+      );
+      if (
+        localTTSVoice &&
+        (!storedVoiceExists ||
+          !ConfigService.getReaderConfig("voiceEngine") ||
+          ConfigService.getReaderConfig("voiceEngine") === "system")
+      ) {
+        ConfigService.setReaderConfig("voiceName", localTTSVoice.name);
+        ConfigService.setReaderConfig("voiceEngine", localTTSVoice.plugin);
+      } else if (!voiceName && !voiceEngine && this.voices.length > 0) {
+        let defaultVoice = localTTSVoice || this.voices[0];
         ConfigService.setReaderConfig("voiceName", defaultVoice.name);
         ConfigService.setReaderConfig(
           "voiceEngine",
@@ -222,12 +237,6 @@ class TextToSpeech extends React.Component<
   };
   handleMultiRoleToggle = (enabled: boolean) => {
     if (enabled) {
-      if (!this.props.isAuthed) {
-        toast(this.props.t("Please upgrade to Pro to use this feature"));
-        this.props.handleSetting(true);
-        this.props.handleSettingMode("general");
-        return;
-      }
       ConfigService.setListConfig(
         this.props.currentBook.key,
         "multiRoleVoiceBooks"
@@ -476,6 +485,14 @@ class TextToSpeech extends React.Component<
     newVoiceEngine: string,
     previousEngine: string
   ) => {
+    console.log(
+      "[TTS诊断] handleVoiceSwitch 调用 newVoiceName=",
+      newVoiceName,
+      "isAudioOn=",
+      this.state.isAudioOn,
+      "nodeList长度=",
+      this.nodeList.length
+    );
     if (!this.state.isAudioOn || this.nodeList.length === 0) return;
 
     const currentIndex = this.state.currentIndex;
@@ -576,7 +593,7 @@ class TextToSpeech extends React.Component<
       nodeTextList = nodeTextList.slice(speechStartIndex);
     }
     this.clearSpeechStartState();
-    if (!this.state.multiRoleEnabled || !this.props.isAuthed) {
+    if (!this.state.multiRoleEnabled) {
       nodeList = nodeTextList.map((text: string) => {
         return {
           text,
@@ -588,23 +605,98 @@ class TextToSpeech extends React.Component<
       toast.loading(this.props.t("Analyzing roles, please wait..."), {
         id: "tts-load",
       });
-      if (nodeTextList.join("").length > 50000) {
-        toast.error(this.props.t("The text is too long to analyze"), {
-          id: "tts-load",
+      // 分段分析（按句子累积到 ~500 字），每块记录起始索引
+      const chunks: { startIndex: number; sentences: string[] }[] = [];
+      let currentSentences: string[] = [];
+      let currentLen = 0;
+      let chunkStartIndex = 0;
+      const MAX_CHUNK = 500;
+      for (let i = 0; i < nodeTextList.length; i++) {
+        const sentence = nodeTextList[i];
+        if (
+          currentLen + sentence.length > MAX_CHUNK &&
+          currentSentences.length > 0
+        ) {
+          chunks.push({ startIndex: chunkStartIndex, sentences: currentSentences });
+          currentSentences = [];
+          currentLen = 0;
+          chunkStartIndex = i;
+        }
+        currentSentences.push(sentence);
+        currentLen += sentence.length;
+      }
+      if (currentSentences.length > 0) {
+        chunks.push({ startIndex: chunkStartIndex, sentences: currentSentences });
+      }
+      try {
+        const speakerByIndex = new Map<number, string>();
+        for (const chunk of chunks) {
+          console.log(
+            "[多角色] 分析片段(" + chunk.sentences.join("").length + "字):",
+            chunk.sentences
+          );
+          const roles = await window.electronAPI.invoke(
+            "ollama-analyze-roles",
+            {
+              sentences: chunk.sentences,
+              model: "qwen3.5:9b",
+              url: "http://127.0.0.1:11434/api/generate",
+            }
+          );
+          console.log("[多角色] 分析结果:", JSON.stringify(roles));
+          for (const role of roles || []) {
+            speakerByIndex.set(chunk.startIndex + role.index, role.speaker);
+          }
+        }
+        const speakerCount: Record<string, number> = {};
+        for (const spk of speakerByIndex.values()) {
+          speakerCount[spk] = (speakerCount[spk] || 0) + 1;
+        }
+        console.log("[多角色] 角色分布:", JSON.stringify(speakerCount));
+        const roleVoice = {
+          narrator: {
+            voiceName:
+              ConfigService.getReaderConfig("multiRoleNarratorVoice") || "v10",
+            voiceEngine:
+              ConfigService.getReaderConfig("multiRoleNarratorEngine") ||
+              "indextts2-voice-plugin",
+          },
+          male: {
+            voiceName:
+              ConfigService.getReaderConfig("multiRoleMaleVoice") || "v1",
+            voiceEngine:
+              ConfigService.getReaderConfig("multiRoleMaleEngine") ||
+              "indextts2-voice-plugin",
+          },
+          female: {
+            voiceName:
+              ConfigService.getReaderConfig("multiRoleFemaleVoice") || "v6",
+            voiceEngine:
+              ConfigService.getReaderConfig("multiRoleFemaleEngine") ||
+              "indextts2-voice-plugin",
+          },
+          child: {
+            voiceName:
+              ConfigService.getReaderConfig("multiRoleChildVoice") || "v8",
+            voiceEngine:
+              ConfigService.getReaderConfig("multiRoleChildEngine") ||
+              "indextts2-voice-plugin",
+          },
+        };
+        nodeList = nodeTextList.map((text, index) => {
+          const speaker = speakerByIndex.get(index) || "narrator";
+          const voice = roleVoice[speaker] || roleVoice.narrator;
+          return {
+            text,
+            voiceName: voice.voiceName,
+            voiceEngine: voice.voiceEngine,
+          };
         });
+      } catch (error) {
+        console.error("Role analysis failed", error);
         this.setState({ isAudioOn: false });
         return [];
       }
-      let splitTextList = rawNodeList.flatMap((texts, index) =>
-        texts.map((text) => ({ text, index: index }))
-      );
-      let narratorVoice = this.state.multiRoleNarratorVoice;
-      let narratorEngine = this.state.multiRoleNarratorEngine;
-      nodeList = splitTextList.map((item) => ({
-        text: item.text,
-        voiceName: narratorVoice,
-        voiceEngine: narratorEngine,
-      }));
       toast.dismiss("tts-load");
     }
 
@@ -1096,6 +1188,14 @@ class TextToSpeech extends React.Component<
             onChange={(event) => {
               let selectedValue = event.target.value;
               let [voiceName, plugin] = selectedValue.split("#");
+              console.log(
+                "[TTS诊断] 下拉选中 value=",
+                selectedValue,
+                "解析 voiceName=",
+                voiceName,
+                "plugin=",
+                plugin
+              );
               const previousEngine =
                 ConfigService.getReaderConfig("voiceEngine");
               ConfigService.setReaderConfig("voiceName", voiceName);
@@ -1211,7 +1311,6 @@ class TextToSpeech extends React.Component<
         >
           <span style={{ width: "calc(100% - 50px)" }}>
             <Trans>AI multi-role speech</Trans>
-            <span style={{ fontSize: "13px", color: "#f16464" }}> (Pro)</span>
           </span>
 
           <span

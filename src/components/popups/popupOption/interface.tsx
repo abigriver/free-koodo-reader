@@ -1,5 +1,6 @@
 import BookModel from "../../../models/Book";
 import HtmlBook from "../../../models/HtmlBook";
+import Plugin from "../../../models/Plugin";
 import { HighlightValue } from "../../../utils/common";
 export interface PopupOptionProps {
   currentBook: BookModel;
@@ -13,6 +14,7 @@ export interface PopupOptionProps {
   chapterDocIndex: number;
   chapter: string;
   htmlBook: HtmlBook;
+  plugins: Plugin[];
   handleOpenMenu: (isOpenMenu: boolean) => void;
   handleNoteKey: (key: string) => void;
   handleMenuMode: (menu: string) => void;

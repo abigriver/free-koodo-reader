@@ -27,6 +27,7 @@ const mapStateToProps = (state: stateType) => {
 
     highlight: state.reader.highlight,
     htmlBook: state.reader.htmlBook,
+    plugins: state.manager.plugins,
   };
 };
 const actionCreator = {

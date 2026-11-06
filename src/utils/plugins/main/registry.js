@@ -12,6 +12,7 @@ const voice10 = require("./voice/multiTTSVoice");
 const voice11 = require("./voice/ttsServerVoice");
 const voice12 = require("./voice/chatTTSUIVoice");
 const voice13 = require("./voice/chatTTSVoice");
+const voice14 = require("./voice/indexTTS2Voice");
 const voice15 = require("./voice/coquiTTSVoice");
 const voicePlugins = {
   "azure-tts-voice-plugin": voice0,
@@ -28,6 +29,7 @@ const voicePlugins = {
   "ttsserver-voice-plugin": voice11,
   "chatttsui-voice-plugin": voice12,
   "chattts-voice-plugin": voice13,
+  "indextts2-voice-plugin": voice14,
   "coquitts-voice-plugin": voice15,
 };
 const getVoicePlugin = (key) =>

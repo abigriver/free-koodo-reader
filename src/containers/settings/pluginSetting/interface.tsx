@@ -28,4 +28,6 @@ export interface SettingInfoState {
   availablePlugins: BuiltinPluginMarketItem[];
   expandedPluginKey: string | null;
   activePluginTab: string;
+  editingPluginKey: string | null;
+  editingConfig: Record<string, string> | null;
 }

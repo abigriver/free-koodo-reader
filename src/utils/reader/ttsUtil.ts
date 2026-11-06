@@ -9,6 +9,7 @@ class TTSUtil {
   static isPaused: boolean = false;
   static pausedMidSentence: boolean = false;
   static processingIndexes: Set<number> = new Set();
+  static generation: number = 0;
   static async readAloud(currentIndex: number) {
     // 清理比当前 index 小 10 的已朗读缓存
     this.audioPaths = this.audioPaths.filter(
@@ -166,14 +167,29 @@ class TTSUtil {
         const audioNode = audioNodeList[index];
         let plugin = plugins.find((item) => item.key === audioNode.voiceEngine);
         if (!plugin) {
+          console.error(
+            "[TTS诊断] 找不到插件: engine=",
+            audioNode.voiceEngine,
+            " 可用插件=",
+            plugins.map((p) => p.key + ":" + p.type)
+          );
           return "error";
         }
         let voice = (plugin.voiceList as any[]).find(
           (voice) => voice.name === audioNode.voiceName
         );
         if (!voice) {
+          console.error(
+            "[TTS诊断] 找不到音色: name=",
+            audioNode.voiceName,
+            " 插件=",
+            plugin.key,
+            " 可用音色=",
+            (plugin.voiceList as any[]).map((v) => v.name)
+          );
           return "error";
         }
+        const gen = this.generation;
         let audioPath = await this.getAudioPath(
           audioNode.text,
           speed,
@@ -184,6 +200,10 @@ class TTSUtil {
         );
         // 处理完成后，从处理集合中移除
         this.processingIndexes.delete(index);
+        if (gen !== this.generation) {
+          // 语音已切换，丢弃过期结果
+          break;
+        }
         if (audioPath) {
           this.audioPaths.push({ index: index, audioPath: audioPath });
         } else {
@@ -252,6 +272,7 @@ class TTSUtil {
     this.audioPaths = [];
     this.processingIndexes.clear();
     this.pausedMidSentence = false;
+    this.generation = (this.generation || 0) + 1;
   }
   static getPlayer() {
     return this.player;

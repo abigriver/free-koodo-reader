@@ -440,6 +440,7 @@
   "Do you want to open this link in browser": "是否使用浏览器打开此链接",
   "WebDAV Info": "WebDAV是一种简单高效的数据备份方式，这里推荐使用坚果云提供的WebDAV服务",
   "Please wait": "请稍侯",
+  "Model is starting, please wait...": "模型正在启动中，请等待...",
   "Select server region": "选择服务器地区",
   "Server region": "服务器地区",
   "Global": "全球",

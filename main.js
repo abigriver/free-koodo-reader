@@ -17,6 +17,7 @@ const {
   net,
   session,
 } = require("electron");
+app.commandLine.appendSwitch("enable-speech-dispatcher");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const isDev = require("electron-is-dev");
@@ -1453,6 +1454,125 @@ const createMainWin = () => {
     });
 
     event.returnValue = "success";
+  });
+  ipcMain.handle("ollama-translate", async (event, args) => {
+    const { url, model, prompt } = args || {};
+    if (
+      typeof url !== "string" ||
+      typeof model !== "string" ||
+      typeof prompt !== "string"
+    ) {
+      throw new TypeError("Invalid ollama translate request");
+    }
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, prompt, stream: false }),
+    });
+    if (!res.ok) {
+      throw new Error(`Ollama translate failed: HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    if (typeof data.response !== "string") {
+      throw new Error("Unexpected Ollama response");
+    }
+    return data.response;
+  });
+  const extractJsonArray = (text) => {
+    if (!text) return null;
+    let value = String(text).trim();
+    value = value.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+    // 1) 直接整体解析
+    try {
+      const direct = JSON.parse(value);
+      if (Array.isArray(direct)) return direct;
+      if (direct && typeof direct === "object") return [direct];
+    } catch (error) {}
+    // 2) 提取 [ ... ]
+    const start = value.indexOf("[");
+    const end = value.lastIndexOf("]");
+    if (start >= 0 && end > start) {
+      try {
+        const arr = JSON.parse(value.slice(start, end + 1));
+        if (Array.isArray(arr)) return arr;
+      } catch (error) {}
+    }
+    // 3) 提取 { ... }
+    const objStart = value.indexOf("{");
+    const objEnd = value.lastIndexOf("}");
+    if (objStart >= 0 && objEnd > objStart) {
+      try {
+        const obj = JSON.parse(value.slice(objStart, objEnd + 1));
+        if (Array.isArray(obj)) return obj;
+        if (obj && typeof obj === "object") return [obj];
+      } catch (error) {}
+    }
+    return null;
+  };
+  ipcMain.handle("ollama-analyze-roles", async (event, args) => {
+    const { sentences, model, url } = args || {};
+    if (
+      !Array.isArray(sentences) ||
+      sentences.length === 0 ||
+      typeof model !== "string"
+    ) {
+      throw new TypeError("Invalid role analysis request");
+    }
+    const endpoint =
+      typeof url === "string" && url
+        ? url
+        : "http://127.0.0.1:11434/api/generate";
+    const numbered = sentences.map((s, i) => `${i}. ${s}`).join("\n");
+    const prompt = `你是小说文本的角色分析器。下面文本按行分句（每行一句），判断每行是哪种说话人：
+narrator=旁白/叙述（没人说话）
+male=男性角色说的话
+female=女性角色说的话
+child=儿童角色说的话
+
+严格只输出每行的角色，格式为「行号:角色」，每行一个，不要任何其他文字、不要解释、不要 markdown。角色只能是 narrator/male/female/child。
+
+文本：
+${numbered}`;
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        prompt,
+        stream: false,
+        think: false,
+        options: { temperature: 0 },
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`Ollama role analysis failed: HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const raw = (data && data.response) || "";
+    const result = [];
+    const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // 格式1: 行号:角色（0:narrator）
+      let match = line.match(/^(\d+)\s*[:：]\s*(narrator|male|female|child)/);
+      if (match) {
+        result.push({ index: parseInt(match[1], 10), speaker: match[2] });
+        continue;
+      }
+      // 格式2: 角色:角色 或 单独角色（用行位置作索引）
+      match = line.match(/(narrator|male|female|child)/);
+      if (match) {
+        result.push({ index: i, speaker: match[1] });
+      }
+    }
+    if (result.length === 0) {
+      console.error(
+        "[角色分析] 无法解析行号:角色，原始返回:",
+        JSON.stringify(raw).slice(0, 600)
+      );
+      throw new Error("Role analysis returned no valid lines");
+    }
+    return result;
   });
   ipcMain.handle("generate-tts", async (event, voiceConfig) => {
     const { text, speed, pluginKey, config } = voiceConfig || {};

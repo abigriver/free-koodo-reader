@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 const INVOKE_CHANNELS = new Set([
   "discord-rpc-update", "discord-rpc-clear",
-  "open-book", "generate-tts", "get-tts-voices", "cloud-upload", "cloud-download", "cloud-progress",
+  "open-book", "generate-tts", "get-tts-voices", "ollama-translate", "ollama-analyze-roles", "cloud-upload", "cloud-download", "cloud-progress",
   "picker-download", "picker-progress", "cloud-reset", "cloud-stats", "cloud-delete",
   "cloud-last-error",
   "cloud-list", "picker-list", "cloud-exist", "cloud-close", "clear-tts", "select-path",

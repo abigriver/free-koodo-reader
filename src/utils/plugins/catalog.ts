@@ -6331,6 +6331,44 @@ const builtinPluginCatalog: BuiltinPluginDefinition[] = [
       "coqui-ai/TTS: 🐸💬 - a deep learning toolkit for Text-to-Speech, battle-tested in research and production (github.com)",
     websiteUrl: "https://github.com/coqui-ai/TTS",
   },
+  {
+    key: "indextts2-voice-plugin",
+    type: "voice",
+    displayName: "IndexTTS-2 (Local)",
+    icon: "speaker",
+    version: "1.0.0",
+    autoValue: "",
+    defaultConfig: {
+      url: "http://127.0.0.1:8972/tts",
+    },
+    langList: {},
+    voiceList: [
+      { name: "v1", gender: "male", locale: "zh-CN", displayName: "磁性男声", plugin: "indextts2-voice-plugin", config: { ref: "磁性男声" } },
+      { name: "v2", gender: "male", locale: "zh-CN", displayName: "低沉大叔", plugin: "indextts2-voice-plugin", config: { ref: "大叔" } },
+      { name: "v3", gender: "male", locale: "zh-CN", displayName: "男声旁白", plugin: "indextts2-voice-plugin", config: { ref: "讲解-男" } },
+      { name: "v4", gender: "male", locale: "zh-CN", displayName: "质感男声", plugin: "indextts2-voice-plugin", config: { ref: "超质感男声" } },
+      { name: "v5", gender: "female", locale: "zh-CN", displayName: "磁性女声旁白", plugin: "indextts2-voice-plugin", config: { ref: "中音磁性女声旁白" } },
+      { name: "v6", gender: "female", locale: "zh-CN", displayName: "温柔女声", plugin: "indextts2-voice-plugin", config: { ref: "短视频温柔女青年解说" } },
+      { name: "v7", gender: "female", locale: "zh-CN", displayName: "温柔姐姐", plugin: "indextts2-voice-plugin", config: { ref: "女-温柔、姐姐" } },
+      { name: "v8", gender: "female", locale: "zh-CN", displayName: "童声（8岁女孩）", plugin: "indextts2-voice-plugin", config: { ref: "蛋黄（8岁+女孩）" } },
+      { name: "v9", gender: "male", locale: "zh-CN", displayName: "老年男声", plugin: "indextts2-voice-plugin", config: { ref: "极低沉很沙哑+老年嗓" } },
+      { name: "v10", gender: "male", locale: "zh-CN", displayName: "专业解说", plugin: "indextts2-voice-plugin", config: { ref: "专业解说配音" } },
+    ],
+    name: {
+      en: "IndexTTS-2 (Local)",
+      zhCN: "IndexTTS-2（本地）",
+    },
+    feature: {
+      en: "Local IndexTTS-2 voice cloning, requires a local IndexTTS-2 server",
+      zhCN: "本地 IndexTTS-2 声音克隆，需本地 IndexTTS-2 服务",
+    },
+    configuration: {
+      en: "Run the local IndexTTS-2 HTTP server, then set the URL (default http://127.0.0.1:8972/tts)",
+      zhCN: "运行本地 IndexTTS-2 HTTP 服务，然后设置 URL（默认 http://127.0.0.1:8972/tts）",
+    },
+    websiteName: "IndexTTS-2",
+    websiteUrl: "https://github.com/index-tts/index-tts",
+  },
 ];
 
 const chineseOnlyPluginKeys = new Set([

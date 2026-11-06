@@ -46,11 +46,40 @@ class SettingDialog extends React.Component<
       availablePlugins: [],
       expandedPluginKey: null,
       activePluginTab: "translation",
+      editingPluginKey: null,
+      editingConfig: null,
     };
   }
   componentDidMount() {
     this.handleGetPluginList();
   }
+  componentDidUpdate(prevProps: SettingInfoProps) {
+    if (prevProps.plugins !== this.props.plugins) {
+      this.handleGetPluginList();
+    }
+  }
+  startEditPlugin = (item: any) => {
+    this.setState({
+      editingPluginKey: item.key,
+      editingConfig: { ...(item.config || {}) },
+    });
+  };
+  updateEditingConfig = (key: string, value: string) => {
+    this.setState({
+      editingConfig: { ...(this.state.editingConfig || {}), [key]: value },
+    });
+  };
+  cancelEditPlugin = () => {
+    this.setState({ editingPluginKey: null, editingConfig: null });
+  };
+  saveEditPlugin = async (item: any) => {
+    const config = this.state.editingConfig;
+    if (!config) return;
+    await DatabaseService.saveRecord({ ...item, config }, "plugins");
+    this.props.handleFetchPlugins();
+    this.setState({ editingPluginKey: null, editingConfig: null });
+    toast.success(this.props.t("Setup successful"));
+  };
   handleGetPluginList = () => {
     const installedPluginKeys = this.props.plugins.map((item) => item.key);
     const pluginList = getBuiltinPluginMarket(
@@ -287,42 +316,112 @@ class SettingDialog extends React.Component<
             .filter((item) => item.type !== "ai")
             .map((item) => {
               return (
-                <div className="setting-dialog-new-title" key={item.key}>
-                  <span>
-                    <span
-                      className={`icon-${
-                        item.type === "dictionary"
-                          ? "dict"
-                          : item.type === "voice"
-                            ? "speaker"
-                            : item.type === "translation"
-                              ? "translation"
-                              : "ai-assist"
-                      } setting-plugin-icon`}
-                    ></span>
-                    <span className="setting-plugin-name">
-                      {this.props.t(item.displayName)}
-                    </span>
-                  </span>
-
-                  {!item.key.startsWith("official") &&
-                    !item.key.startsWith("dict") &&
-                    !item.key.startsWith("custom") && (
+                <div key={item.key}>
+                  <div className="setting-dialog-new-title">
+                    <span>
                       <span
-                        className="change-location-button"
-                        onClick={async () => {
-                          await DatabaseService.deleteRecord(
-                            item.key,
-                            "plugins"
-                          );
-                          this.props.handleFetchPlugins();
-                          toast.success(this.props.t("Deletion successful"));
-                          this.handleGetPluginList();
-                        }}
-                      >
-                        <Trans>Delete</Trans>
+                        className={`icon-${
+                          item.type === "dictionary"
+                            ? "dict"
+                            : item.type === "voice"
+                              ? "speaker"
+                              : item.type === "translation"
+                                ? "translation"
+                                : "ai-assist"
+                        } setting-plugin-icon`}
+                      ></span>
+                      <span className="setting-plugin-name">
+                        {this.props.t(item.displayName)}
                       </span>
-                    )}
+                    </span>
+
+                    {!item.key.startsWith("official") &&
+                      !item.key.startsWith("dict") &&
+                      !item.key.startsWith("custom") && (
+                        <>
+                          <span
+                            className="change-location-button"
+                            style={{ marginRight: "10px" }}
+                            onClick={() => this.startEditPlugin(item)}
+                          >
+                            <Trans>Edit</Trans>
+                          </span>
+                          <span
+                            className="change-location-button"
+                            onClick={async () => {
+                              await DatabaseService.deleteRecord(
+                                item.key,
+                                "plugins"
+                              );
+                              this.props.handleFetchPlugins();
+                              toast.success(
+                                this.props.t("Deletion successful")
+                              );
+                            }}
+                          >
+                            <Trans>Delete</Trans>
+                          </span>
+                        </>
+                      )}
+                  </div>
+                  {this.state.editingPluginKey === item.key && (
+                    <div
+                      style={{
+                        margin: "0 30px 15px 30px",
+                        padding: "12px",
+                        backgroundColor: "#f5f5f5",
+                        borderRadius: "8px",
+                      }}
+                    >
+                      {Object.keys(this.state.editingConfig || {}).map(
+                        (key) => (
+                          <div
+                            key={key}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            <span style={{ width: "80px", fontWeight: 500 }}>
+                              {key}
+                            </span>
+                            <input
+                              style={{
+                                flex: 1,
+                                padding: "6px 8px",
+                                border: "1px solid #ccc",
+                                borderRadius: "4px",
+                              }}
+                              value={
+                                this.state.editingConfig
+                                  ? this.state.editingConfig[key] || ""
+                                  : ""
+                              }
+                              onChange={(e) =>
+                                this.updateEditingConfig(key, e.target.value)
+                              }
+                            />
+                          </div>
+                        )
+                      )}
+                      <div style={{ textAlign: "right" }}>
+                        <span
+                          className="change-location-button"
+                          style={{ marginRight: "10px" }}
+                          onClick={() => this.saveEditPlugin(item)}
+                        >
+                          <Trans>Save</Trans>
+                        </span>
+                        <span
+                          className="change-location-button"
+                          onClick={this.cancelEditPlugin}
+                        >
+                          <Trans>Cancel</Trans>
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

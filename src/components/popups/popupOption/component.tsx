@@ -8,6 +8,7 @@ import {
   PopupOptionKey,
 } from "../../../constants/popupList";
 import { ConfigService, HighlightUtil } from "../../../assets/lib/kookit-extra-browser.min";
+import { Howl } from "howler";
 import toast from "react-hot-toast";
 import {
   getSelection,
@@ -163,12 +164,30 @@ class PopupOption extends React.Component<PopupOptionProps> {
     this.props.handleOpenMenu(false);
   };
 
-  handleSpeak = () => {
-    var msg = new SpeechSynthesisUtterance();
-    msg.text = getSelection(this.props.currentBook.format);
-    if (window.speechSynthesis && window.speechSynthesis.getVoices) {
-      msg.voice = window.speechSynthesis.getVoices()[0];
-      window.speechSynthesis.speak(msg);
+  handleSpeak = async () => {
+    const text = getSelection(this.props.currentBook.format);
+    if (!text) return;
+    const voiceEngine = ConfigService.getReaderConfig("voiceEngine");
+    const voiceName = ConfigService.getReaderConfig("voiceName");
+    const plugin = this.props.plugins.find(
+      (p: any) => p.key === voiceEngine
+    );
+    if (!plugin) return;
+    const voice = ((plugin.voiceList as any[]) || []).find(
+      (v: any) => v.name === voiceName
+    );
+    if (!voice) return;
+    try {
+      const audioUrl = await window.electronAPI.invoke("generate-tts", {
+        text,
+        speed: 0,
+        pluginKey: voiceEngine,
+        config: voice.config,
+      });
+      const sound = new Howl({ src: [audioUrl], format: ["wav"] });
+      sound.play();
+    } catch (e) {
+      console.error("朗读文字失败", e);
     }
   };
 

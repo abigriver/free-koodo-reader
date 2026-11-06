@@ -54,6 +54,13 @@ export const popupList: PopupOptionItem[] = [
     defaultEnabled: true,
   },
   {
+    key: "translation",
+    name: "translation",
+    title: "Translate",
+    icon: "translation",
+    defaultEnabled: true,
+  },
+  {
     key: "dict",
     name: "dict",
     title: "Dictionary",
