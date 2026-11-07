@@ -2,7 +2,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 const INVOKE_CHANNELS = new Set([
   "discord-rpc-update", "discord-rpc-clear",
-  "open-book", "generate-tts", "get-tts-voices", "ollama-translate", "ollama-analyze-roles", "cloud-upload", "cloud-download", "cloud-progress",
+  "open-book", "generate-tts", "get-tts-voices", "ollama-translate", "ollama-analyze-roles",
+  "ollama-chat", "ollama-chat-abort", "ollama-models", "cloud-upload", "cloud-download", "cloud-progress",
   "picker-download", "picker-progress", "cloud-reset", "cloud-stats", "cloud-delete",
   "cloud-last-error",
   "cloud-list", "picker-list", "cloud-exist", "cloud-close", "clear-tts", "select-path",
@@ -27,7 +28,7 @@ const SEND_SYNC_CHANNELS = new Set([
 const EVENT_CHANNELS = new Set([
   "before-reader-close", "before-tab-close", "reading-finished",
   "import-url-from-link", "open-book-from-link", "open-note-from-link",
-  "backup-progress"
+  "backup-progress", "ollama-chat-stream"
 ]);
 
 const assertChannel = (set, channel) => {

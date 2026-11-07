@@ -1478,6 +1478,208 @@ const createMainWin = () => {
     }
     return data.response;
   });
+  // ---------------------------------------------------------------------------
+  // Local reading assistant (Ollama)
+  // ---------------------------------------------------------------------------
+  const OLLAMA_DEFAULT_BASE_URL = "http://127.0.0.1:11434";
+  const ollamaChatControllers = new Map();
+  // Accepts either a bare host ("127.0.0.1:11434"), a base url or a full
+  // endpoint copied from the translation plugin (".../api/generate").
+  const resolveOllamaEndpoint = (baseUrl, suffix) => {
+    let value =
+      typeof baseUrl === "string" && baseUrl.trim()
+        ? baseUrl.trim()
+        : OLLAMA_DEFAULT_BASE_URL;
+    if (!/^https?:\/\//i.test(value)) value = "http://" + value;
+    let parsed;
+    try {
+      parsed = new URL(value);
+    } catch (error) {
+      throw new TypeError("Invalid Ollama endpoint: " + value);
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new TypeError("Unsupported Ollama protocol: " + parsed.protocol);
+    }
+    let pathname = parsed.pathname.replace(/\/+$/, "");
+    const apiIndex = pathname.indexOf("/api/");
+    if (apiIndex >= 0) pathname = pathname.slice(0, apiIndex);
+    parsed.pathname = pathname + suffix;
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString();
+  };
+  // Turn undici's opaque "fetch failed" into something the UI can show.
+  const describeOllamaConnectionError = (error, url) => {
+    if (error && error.name === "AbortError") return error;
+    const target =
+      typeof url === "string" && url.trim()
+        ? url.trim()
+        : OLLAMA_DEFAULT_BASE_URL;
+    const code =
+      (error && error.cause && error.cause.code) || (error && error.code) || "";
+    if (
+      code === "ECONNREFUSED" ||
+      code === "ENOTFOUND" ||
+      code === "EHOSTUNREACH" ||
+      /fetch failed/i.test(String((error && error.message) || ""))
+    ) {
+      return new Error(
+        `Cannot reach Ollama at ${target}, please make sure the Ollama service is running`
+      );
+    }
+    return error;
+  };
+  ipcMain.handle("ollama-models", async (event, args) => {
+    const { url } = args || {};
+    const endpoint = resolveOllamaEndpoint(url, "/api/tags");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      let res;
+      try {
+        res = await fetch(endpoint, { signal: controller.signal });
+      } catch (error) {
+        throw describeOllamaConnectionError(error, url);
+      }
+      if (!res.ok) {
+        throw new Error(`Ollama model list failed: HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const models = Array.isArray(data && data.models) ? data.models : [];
+      return models
+        .map((item) =>
+          item && typeof item.name === "string"
+            ? item.name
+            : item && typeof item.model === "string"
+              ? item.model
+              : ""
+        )
+        .filter(Boolean);
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        throw new Error("Ollama model list timed out");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+  ipcMain.handle("ollama-chat-abort", (event, requestId) => {
+    if (typeof requestId !== "string") return false;
+    const controller = ollamaChatControllers.get(requestId);
+    if (!controller) return false;
+    controller.abort();
+    ollamaChatControllers.delete(requestId);
+    return true;
+  });
+  ipcMain.handle("ollama-chat", async (event, args) => {
+    const { url, model, messages, requestId, temperature, numCtx } = args || {};
+    if (!Array.isArray(messages) || messages.length === 0) {
+      throw new TypeError("Invalid Ollama chat request");
+    }
+    const safeMessages = messages
+      .filter(
+        (item) =>
+          item &&
+          typeof item.content === "string" &&
+          ["system", "user", "assistant"].includes(item.role)
+      )
+      .map((item) => ({ role: item.role, content: item.content }));
+    if (safeMessages.length === 0) {
+      throw new TypeError("Invalid Ollama chat messages");
+    }
+    const endpoint = resolveOllamaEndpoint(url, "/api/chat");
+    const id =
+      typeof requestId === "string" && requestId
+        ? requestId
+        : `ollama-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const controller = new AbortController();
+    ollamaChatControllers.set(id, controller);
+    const webContents = event.sender;
+    let content = "";
+    try {
+      let res;
+      try {
+        res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model:
+              typeof model === "string" && model.trim()
+                ? model.trim()
+                : "qwen3.5:9b",
+            messages: safeMessages,
+            stream: true,
+            // qwen3.5 & friends time out inside the thinking phase on small
+            // local hardware — reasoning is not needed for reading Q&A.
+            think: false,
+            options: {
+              temperature:
+                typeof temperature === "number" && Number.isFinite(temperature)
+                  ? temperature
+                  : 0.7,
+              num_ctx: Number.isFinite(numCtx) ? numCtx : 8192,
+            },
+          }),
+        });
+      } catch (error) {
+        throw describeOllamaConnectionError(error, url);
+      }
+      if (!res.ok) {
+        throw new Error(`Ollama chat failed: HTTP ${res.status}`);
+      }
+      if (!res.body || typeof res.body.getReader !== "function") {
+        const data = await res.json();
+        content =
+          (data && data.message && data.message.content) ||
+          (typeof data.response === "string" ? data.response : "");
+        return { requestId: id, content, aborted: false };
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const handleLine = (line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        let chunk;
+        try {
+          chunk = JSON.parse(trimmed);
+        } catch (error) {
+          return;
+        }
+        if (chunk && chunk.error) throw new Error(String(chunk.error));
+        const delta = chunk && chunk.message && chunk.message.content;
+        if (delta) {
+          content += delta;
+          if (!webContents.isDestroyed()) {
+            webContents.send("ollama-chat-stream", { requestId: id, delta });
+          }
+        }
+      };
+      // Ollama streams newline-delimited JSON, not SSE.
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let newlineIndex = buffer.indexOf("\n");
+        while (newlineIndex >= 0) {
+          handleLine(buffer.slice(0, newlineIndex));
+          buffer = buffer.slice(newlineIndex + 1);
+          newlineIndex = buffer.indexOf("\n");
+        }
+      }
+      if (buffer.trim()) handleLine(buffer);
+      return { requestId: id, content, aborted: false };
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        return { requestId: id, content, aborted: true };
+      }
+      throw error;
+    } finally {
+      ollamaChatControllers.delete(id);
+    }
+  });
   const extractJsonArray = (text) => {
     if (!text) return null;
     let value = String(text).trim();
@@ -1522,6 +1724,26 @@ const createMainWin = () => {
       typeof url === "string" && url
         ? url
         : "http://127.0.0.1:11434/api/generate";
+    // 远端 TTS 服务自带 /analyze 代理时，把整段判断交给它，客户端无需暴露 Ollama。
+    if (/\/analyze$/.test(endpoint)) {
+      const headers = { "Content-Type": "application/json" };
+      if (typeof args.token === "string" && args.token) {
+        headers.Authorization = `Bearer ${args.token}`;
+      }
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ sentences, model }),
+      });
+      if (!res.ok) {
+        throw new Error(`Remote role analysis failed: HTTP ${res.status}`);
+      }
+      const remote = await res.json();
+      if (!Array.isArray(remote) || remote.length === 0) {
+        throw new Error("Remote role analysis returned no valid lines");
+      }
+      return remote;
+    }
     const numbered = sentences.map((s, i) => `${i}. ${s}`).join("\n");
     const prompt = `你是小说文本的角色分析器。下面文本按行分句（每行一句），判断每行是哪种说话人：
 narrator=旁白/叙述（没人说话）
@@ -1533,17 +1755,28 @@ child=儿童角色说的话
 
 文本：
 ${numbered}`;
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        prompt,
-        stream: false,
-        think: false,
-        options: { temperature: 0 },
-      }),
-    });
+    // 角色分析固定在小模型上跑：它要和 IndexTTS-2 共用 24GB 显存
+    const ROLE_ANALYSIS_MODEL = "qwen3.5:9b";
+    const askOllama = (modelName) =>
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: modelName,
+          prompt,
+          stream: false,
+          think: false,
+          options: { temperature: 0 },
+        }),
+      });
+    let res = await askOllama(model);
+    if (res.status === 404 && model !== ROLE_ANALYSIS_MODEL) {
+      // 配置里写了个本机没装的模型名时，别让整段朗读失去角色区分
+      console.warn(
+        `[角色分析] 模型 ${model} 不存在，回落到 ${ROLE_ANALYSIS_MODEL}`
+      );
+      res = await askOllama(ROLE_ANALYSIS_MODEL);
+    }
     if (!res.ok) {
       throw new Error(`Ollama role analysis failed: HTTP ${res.status}`);
     }

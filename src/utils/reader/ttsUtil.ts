@@ -2,6 +2,7 @@ import { Howl } from "howler";
 import PluginModel from "../../models/Plugin";
 import { getAllVoices, getFormatFromAudioPath } from "../common";
 import { isElectron } from "react-device-detect";
+import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
 
 class TTSUtil {
   static player: any;
@@ -258,13 +259,31 @@ class TTSUtil {
     voice,
     isFirst: boolean
   ) {
+    // 三层覆盖，后者优先：
+    //   1) 插件自身配置（设置 → 插件 → Edit，可改 url / token / format）
+    //   2) 音色配置（catalog 里每个 voice 的 ref）
+    //   3) 全局覆盖（配置项 ttsServerUrl / ttsServerToken，适合不想动插件的人）
+    // 远端 GPU 场景下 url 指向另一台机器的 IndexTTS-2 服务，
+    // 例如 p2wlan 里的 http://10.20.0.2:8972/tts。全空则退回插件默认的 127.0.0.1。
+    const remoteUrl = ConfigService.getReaderConfig("ttsServerUrl");
+    const token = ConfigService.getReaderConfig("ttsServerToken");
+    const pluginConfig =
+      plugin && plugin.config && typeof plugin.config === "object"
+        ? plugin.config
+        : {};
+    const config = {
+      ...pluginConfig,
+      ...(voice && voice.config ? voice.config : {}),
+      ...(remoteUrl ? { url: remoteUrl } : {}),
+      ...(token ? { token } : {}),
+    };
     let audioPath = await window
       .electronAPI
       .invoke("generate-tts", {
         text: text,
         speed,
         pluginKey: plugin.key,
-        config: voice.config,
+        config: config,
       });
     return audioPath;
   }

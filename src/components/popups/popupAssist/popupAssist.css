@@ -1,0 +1,350 @@
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.popup-assist-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 18px 12px 18px;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+.popup-assist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 0 6px 0;
+  flex-shrink: 0;
+}
+
+.popup-assist-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.popup-assist-tab {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  color: #f16464;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  line-height: 30px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 14px;
+  opacity: 0.85;
+  user-select: none;
+}
+
+.popup-assist-tab.is-active {
+  background-color: rgba(241, 100, 100, 0.08);
+  opacity: 1;
+}
+
+.popup-assist-tab:hover {
+  background-color: rgba(241, 100, 100, 0.06);
+}
+
+.popup-assist-tab-icon {
+  font-size: 13px;
+  margin-right: 5px;
+}
+
+.popup-assist-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.popup-assist-model {
+  width: 108px;
+  height: 28px;
+  border: none;
+  background-color: transparent;
+  font-size: 13px;
+  color: #f16464;
+  cursor: pointer;
+  outline: none;
+  text-overflow: ellipsis;
+}
+
+.popup-assist-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  opacity: 0.75;
+  color: #f16464;
+  user-select: none;
+}
+
+.popup-assist-tool:hover,
+.popup-assist-tool.is-active {
+  opacity: 1;
+  background-color: rgba(241, 100, 100, 0.08);
+}
+
+.popup-assist-settings {
+  flex-shrink: 0;
+  border-radius: 8px;
+  background-color: rgba(75, 75, 75, 0.05);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  max-height: 60%;
+  overflow-y: auto;
+}
+
+.popup-assist-field-label {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.popup-assist-field-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.popup-assist-input,
+.popup-assist-prompt {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: inherit;
+  background-color: rgba(255, 255, 255, 0.55);
+  outline: none;
+}
+
+.popup-assist-prompt {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.popup-assist-refresh {
+  cursor: pointer;
+  font-size: 13px;
+  opacity: 0.8;
+  padding: 2px 4px;
+}
+
+.popup-assist-refresh:hover {
+  opacity: 1;
+}
+
+.popup-assist-refresh.is-loading span {
+  animation: spin 1s linear infinite;
+}
+
+.popup-assist-hint {
+  font-size: 12px;
+  color: #f16464;
+  margin-top: 6px;
+  word-break: break-all;
+}
+
+.popup-assist-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.popup-assist-text-button {
+  color: #f16464;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  opacity: 0.85;
+}
+
+.popup-assist-text-button:hover {
+  opacity: 1;
+}
+
+.popup-assist-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  user-select: text;
+}
+
+.popup-assist-bubble {
+  position: relative;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  word-break: break-word;
+  clear: both;
+}
+
+.popup-assist-bubble.is-assistant {
+  float: left;
+  width: calc(100% - 20px);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.popup-assist-bubble.is-user {
+  float: right;
+  max-width: 85%;
+  background-color: rgba(75, 75, 75, 0.05);
+  border-bottom-right-radius: 0;
+}
+
+.popup-assist-bubble p {
+  margin: 0 0 8px 0;
+}
+
+.popup-assist-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.popup-assist-bubble pre {
+  background-color: rgba(75, 75, 75, 0.08);
+  border-radius: 6px;
+  padding: 8px;
+  overflow-x: auto;
+}
+
+.popup-assist-bubble code {
+  font-size: 13px;
+}
+
+.popup-assist-copy {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.6;
+  cursor: pointer;
+  user-select: none;
+}
+
+.popup-assist-copy:hover {
+  opacity: 1;
+}
+
+.popup-assist-thinking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.8;
+}
+
+.popup-assistant-loading {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+.popup-assist-footer {
+  flex-shrink: 0;
+  padding-top: 6px;
+}
+
+.popup-assist-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-bottom: 8px;
+}
+
+.popup-assist-shortcut {
+  font-size: 13px;
+  line-height: 1.3;
+  opacity: 0.8;
+  cursor: pointer;
+  user-select: none;
+}
+
+.popup-assist-shortcut:hover {
+  color: #f16464;
+  opacity: 1;
+}
+
+.popup-assist-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.popup-assist-textarea {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+  line-height: 20px;
+  font-family: inherit;
+  color: inherit;
+  background-color: rgba(75, 75, 75, 0.05);
+  resize: none;
+  outline: none;
+}
+
+.popup-assist-textarea::placeholder {
+  opacity: 0.7;
+}
+
+.popup-assist-send {
+  flex-shrink: 0;
+  min-width: 56px;
+  padding: 8px 12px;
+  border: 2px solid #f16464;
+  color: #f16464;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 14px;
+  user-select: none;
+}
+
+.popup-assist-send:hover {
+  background-color: rgba(241, 100, 100, 0.08);
+}
+
+.popup-assist-send.is-disabled {
+  opacity: 0.5;
+  cursor: default;
+  background-color: transparent;
+}
+
+.popup-assist-send.is-stop {
+  border-color: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  opacity: 0.8;
+}
+
+.popup-assist-container.is-docked .popup-assist-header {
+  padding-top: 12px;
+}
+
+.popup-assist-container.is-docked .popup-assist-model {
+  width: 88px;
+}

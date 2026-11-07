@@ -21,6 +21,12 @@ import TTSUtil from "../../utils/reader/ttsUtil";
 import "./textToSpeech.css";
 import { Howl } from "howler";
 declare var window: any;
+
+// 角色分析固定用的小模型。9B 约占 6.6GB 显存，能和 IndexTTS-2（约 8GB）一起
+// 待在 24GB 卡上；换成 27B 之类的模型会把 TTS 挤到换页，整章分析反而更慢。
+// 服务端（indextts_server.py 的 /analyze）会对超过 12GB 的模型做同样的回落。
+const ROLE_ANALYSIS_MODEL = "qwen3.5:9b";
+
 class TextToSpeech extends React.Component<
   TextToSpeechProps,
   TextToSpeechState
@@ -630,20 +636,58 @@ class TextToSpeech extends React.Component<
       }
       try {
         const speakerByIndex = new Map<number, string>();
+        // 远端 GPU 场景：把角色分析也交给那台机器。
+        // 优先级：
+        //   1) roleAnalysisServer（显式配置，可填 http://host:11434 直连 Ollama，
+        //      或 http://host:8972/analyze 走 TTS 服务的代理）
+        //   2) 从 TTS 地址自动推导 /analyze —— 远端只需配一个 TTS 地址，
+        //      来源可以是插件配置里的 url（设置 → 插件 → Edit），也可以全局覆盖
+        //   3) 本机 Ollama（保持原来的本地行为）
+        const roleServer =
+          ConfigService.getReaderConfig("roleAnalysisServer") || "";
+        const roleModel =
+          ConfigService.getReaderConfig("roleAnalysisModel") ||
+          ROLE_ANALYSIS_MODEL;
+        const ttsPluginConfig =
+          (this.props.plugins.find(
+            (item) => item.key === "indextts2-voice-plugin"
+          ) as any)?.config || {};
+        const ttsServerUrl = String(
+          ConfigService.getReaderConfig("ttsServerUrl") ||
+            ttsPluginConfig.url ||
+            ""
+        ).trim();
+        let trimmedServer = String(roleServer).trim().replace(/\/+$/, "");
+        if (!trimmedServer && ttsServerUrl) {
+          const derived = ttsServerUrl
+            .replace(/\/+$/, "")
+            .replace(/\/tts$/, "/analyze");
+          if (derived !== ttsServerUrl.replace(/\/+$/, "")) {
+            trimmedServer = derived;
+          }
+        }
+        const roleEndpoint = trimmedServer
+          ? trimmedServer.includes("/analyze")
+            ? trimmedServer
+            : /\/api\/(generate|chat)$/.test(trimmedServer)
+            ? trimmedServer
+            : `${trimmedServer}/api/generate`
+          : "http://127.0.0.1:11434/api/generate";
+        // token 可能填在插件配置里（设置 → 插件 → Edit），也可能填在全局配置里
+        const roleToken =
+          ConfigService.getReaderConfig("ttsServerToken") ||
+          ttsPluginConfig.token ||
+          "";
         for (const chunk of chunks) {
-          console.log(
-            "[多角色] 分析片段(" + chunk.sentences.join("").length + "字):",
-            chunk.sentences
-          );
           const roles = await window.electronAPI.invoke(
             "ollama-analyze-roles",
             {
               sentences: chunk.sentences,
-              model: "qwen3.5:9b",
-              url: "http://127.0.0.1:11434/api/generate",
+              model: roleModel,
+              url: roleEndpoint,
+              token: roleToken,
             }
           );
-          console.log("[多角色] 分析结果:", JSON.stringify(roles));
           for (const role of roles || []) {
             speakerByIndex.set(chunk.startIndex + role.index, role.speaker);
           }

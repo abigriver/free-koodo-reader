@@ -6340,6 +6340,8 @@ const builtinPluginCatalog: BuiltinPluginDefinition[] = [
     autoValue: "",
     defaultConfig: {
       url: "http://127.0.0.1:8972/tts",
+      token: "",
+      format: "wav",
     },
     langList: {},
     voiceList: [

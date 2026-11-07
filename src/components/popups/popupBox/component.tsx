@@ -2,6 +2,7 @@ import React from "react";
 import "./popupMenu.css";
 import PopupNote from "../popupNote";
 import PopupTrans from "../popupTrans";
+import PopupAssist from "../popupAssist";
 import PopupDict from "../popupDict";
 import { PopupBoxProps, PopupBoxStates } from "./interface";
 import { getIframeDoc } from "../../../utils/reader/docUtil";
@@ -15,7 +16,7 @@ const SETTING_PANEL_WIDTH = 299;
 const POPUP_SIZE_KEY = "popupBoxSize";
 const POPUP_POS_KEY = "popupBoxPosition";
 const DEFAULT_WIDTH = 500;
-const POPUP_MODES = ["note", "trans", "dict"];
+const POPUP_MODES = ["note", "trans", "dict", "assistant"];
 
 function getDefaultHeight(menuMode: string) {
   if (menuMode === "assistant") return 400;
@@ -372,6 +373,8 @@ class PopupBox extends React.Component<PopupBoxProps, PopupBoxStates> {
             <PopupNote {...(PopupProps as any)} />
           ) : menuMode === "trans" ? (
             <PopupTrans {...(PopupProps as any)} />
+          ) : menuMode === "assistant" ? (
+            <PopupAssist {...(PopupProps as any)} />
           ) : menuMode === "dict" ? (
             <PopupDict {...(PopupProps as any)} />
           ) : null}
