@@ -1039,7 +1039,7 @@ class SyncSetting extends React.Component<SettingInfoProps, SettingInfoState> {
                 style={{ textDecoration: "underline" }}
                 onClick={() => {
                   openExternalUrl(
-                    "https://github.com/NIyueeE/free-koodo-reader"
+                    "https://github.com/abigriver/free-koodo-reader"
                   );
                 }}
               >

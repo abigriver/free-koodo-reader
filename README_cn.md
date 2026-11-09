@@ -84,9 +84,9 @@ yarn android:build:release # 构建 release APK
 
 ## 仓库
 
-- GitHub：https://github.com/NIyueeE/free-koodo-reader
+- GitHub：https://github.com/abigriver/free-koodo-reader
 - 默认分支：`main`
-- 问题 / 反馈：https://github.com/NIyueeE/free-koodo-reader/issues
+- 问题 / 反馈：https://github.com/abigriver/free-koodo-reader/issues
 
 ## 许可证
 

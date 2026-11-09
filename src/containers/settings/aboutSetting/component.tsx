@@ -30,7 +30,7 @@ class AboutSetting extends React.Component<SettingInfoProps, SettingInfoState> {
                 style={{ marginLeft: "10px", cursor: "pointer" }}
                 onClick={() => {
                   openExternalUrl(
-                    "https://github.com/NIyueeE/free-koodo-reader/releases"
+                    "https://github.com/abigriver/free-koodo-reader/releases"
                   );
                 }}
               >
@@ -175,7 +175,7 @@ class AboutSetting extends React.Component<SettingInfoProps, SettingInfoState> {
             className="change-location-button"
             onClick={() => {
               copyTextToClipboard(
-                "https://github.com/NIyueeE/free-koodo-reader/issues"
+                "https://github.com/abigriver/free-koodo-reader/issues"
               );
               toast.success(this.props.t("Email copied to clipboard"));
             }}

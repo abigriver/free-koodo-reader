@@ -888,7 +888,7 @@ export const getDefaultTransTarget = (langList) => {
   );
   return langMap[langTarget || "English"];
 };
-export const WEBSITE_URL = "https://github.com/NIyueeE/free-koodo-reader";
+export const WEBSITE_URL = "https://github.com/abigriver/free-koodo-reader";
 export const CN_WEBSITE_URL = WEBSITE_URL;
 export const getServerRegion = () => {
   return "global";

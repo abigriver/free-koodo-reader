@@ -87,9 +87,9 @@ The repository uses GitHub Actions (with concurrency cancellation + job timeouts
 
 ## Repository
 
-- GitHub: https://github.com/NIyueeE/free-koodo-reader
+- GitHub: https://github.com/abigriver/free-koodo-reader
 - Default branch: `main`
-- Issues / feedback: https://github.com/NIyueeE/free-koodo-reader/issues
+- Issues / feedback: https://github.com/abigriver/free-koodo-reader/issues
 
 ## License
 

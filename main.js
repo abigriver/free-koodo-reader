@@ -1307,7 +1307,7 @@ const createMainWin = () => {
         buttons: [
           {
             label: "Get Free Koodo Reader",
-            url: "https://github.com/NIyueeE/free-koodo-reader",
+            url: "https://github.com/abigriver/free-koodo-reader",
           },
         ],
       });

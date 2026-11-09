@@ -88,7 +88,7 @@ class UpdateInfo extends React.Component<UpdateInfoProps, UpdateInfoState> {
                   className="new-version-open"
                   onClick={() => {
                     openExternalUrl(
-                      "https://github.com/NIyueeE/free-koodo-reader/releases"
+                      "https://github.com/abigriver/free-koodo-reader/releases"
                     );
                   }}
                 >
@@ -104,7 +104,7 @@ class UpdateInfo extends React.Component<UpdateInfoProps, UpdateInfoState> {
                   className="new-version-skip"
                   onClick={() => {
                     openExternalUrl(
-                      "https://github.com/NIyueeE/free-koodo-reader/releases"
+                      "https://github.com/abigriver/free-koodo-reader/releases"
                     );
                   }}
                 >

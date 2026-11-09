@@ -57,7 +57,7 @@ Free Koodo Reader 是一个本地优先、无官方云服务的跨平台电子�
 ### 远程仓库布局
 
 - `origin` = 上游 `koodo-reader/koodo-reader`：**只读**（push 返回 403），仅用于同步上游。
-- `fork` = `NIyueeE/free-koodo-reader`：实际开发与发布仓库（gh CLI 登录账号 `NIyueeE`）。**main 提交和 `v*` tag 都推送到 fork**，全部历史 Release 都在 fork 上；签名等 Actions Secrets 也配置在 fork。
+- `fork` = `abigriver/free-koodo-reader`：实际开发与发布仓库（gh CLI 登录账号 `abigriver`）。**main 提交和 `v*` tag 都推送到 fork**，全部历史 Release 都在 fork 上；签名等 Actions Secrets 也配置在 fork。
 - 提交说明遵循 conventional style（`fix(...)`/`feat(...)`/`chore(release): bump version to X.Y.Z`）。
 
 ### Workflow 拓扑
@@ -70,10 +70,10 @@ Free Koodo Reader 是一个本地优先、无官方云服务的跨平台电子�
 ### 发布 SOP
 
 1. 同步递增版本：`package.json` `version` 与 `android/app/build.gradle` `versionCode`/`versionName`（versionCode = 主×1000 + 次×100 + 修订，如 3.0.6 → 3006）。
-2. `git push fork main`，等 `ci.yml` 全绿：`gh run watch <run-id> -R NIyueeE/free-koodo-reader --exit-status`。
+2. `git push fork main`，等 `ci.yml` 全绿：`gh run watch <run-id> -R abigriver/free-koodo-reader --exit-status`。
 3. `git tag -a vX.Y.Z -m "..."` 并 `git push fork vX.Y.Z`，release workflow 自动启动（全程约 20 分钟）。**不要**手动预先创建 release（electron-builder 会自动建）。
-4. 结束后校验：`gh release view vX.Y.Z -R NIyueeE/free-koodo-reader` —— 必须 `isDraft=false`、`isPrerelease=false`、18 个产物齐全（Win x64/ia32/arm64 exe+blockmap、Portable、Zip；Linux x64/arm64 AppImage/deb、rpm、snap；`app-release.apk`；自动更新元数据 `latest*.yml` ×3）。
-5. 写发布说明：workflow 创建的 release 初始 **body 为空、标题为 "X.Y.Z"**，用 `gh release edit vX.Y.Z -R NIyueeE/free-koodo-reader --title "Free Koodo Reader vX.Y.Z" --notes-file <file>` 补全。风格对齐历史 note：英文、`# Free Koodo Reader vX.Y.Z` 标题 + 一段加粗导语 + `##` 分节（每条加粗导语句）+ 末尾 Testing/Verification 节。
+4. 结束后校验：`gh release view vX.Y.Z -R abigriver/free-koodo-reader` —— 必须 `isDraft=false`、`isPrerelease=false`、18 个产物齐全（Win x64/ia32/arm64 exe+blockmap、Portable、Zip；Linux x64/arm64 AppImage/deb、rpm、snap；`app-release.apk`；自动更新元数据 `latest*.yml` ×3）。
+5. 写发布说明：workflow 创建的 release 初始 **body 为空、标题为 "X.Y.Z"**，用 `gh release edit vX.Y.Z -R abigriver/free-koodo-reader --title "Free Koodo Reader vX.Y.Z" --notes-file <file>` 补全。风格对齐历史 note：英文、`# Free Koodo Reader vX.Y.Z` 标题 + 一段加粗导语 + `##` 分节（每条加粗导语句）+ 末尾 Testing/Verification 节。
 
 ### 注意事项
 

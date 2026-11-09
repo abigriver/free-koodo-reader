@@ -5,13 +5,13 @@
   "description": "Free Koodo Reader - a privacy-friendly cross-platform ebook reader",
   "author": {
     "name": "Free Koodo Reader",
-    "email": "NIyueeE@users.noreply.github.com"
+    "email": "abigriver@163.com"
   },
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=6.0.0"
   },
-  "repository": "https://github.com/NIyueeE/free-koodo-reader",
+  "repository": "https://github.com/abigriver/free-koodo-reader",
   "private": true,
   "resolutions": {
     "@types/react": "^18.3.1",
@@ -173,7 +173,7 @@
     "publish": {
       "provider": "github",
       "repo": "free-koodo-reader",
-      "owner": "NIyueeE"
+      "owner": "abigriver"
     },
     "buildDependenciesFromSource": false,
     "nodeGypRebuild": false,
