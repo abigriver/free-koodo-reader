@@ -980,8 +980,11 @@ class TextToSpeech extends React.Component<
         player.on("end", async () => {
           if (!(this.state.isAudioOn && this.props.isReading)) {
             resolve("end");
+            return;
           }
-          resolve("start");
+          // Howler 的 end 事件偶尔会比实际音频早触发，导致上一句末尾
+          // 还没读完就切到下一句（短句/多角色时更明显）。缓冲一小段再切换。
+          setTimeout(() => resolve("start"), 200);
         });
       }
     });

@@ -13,13 +13,13 @@ const getAudioPath = async (text, speed, dirPath, config) => {
   if (!fs.existsSync(ttsDir)) {
     fs.mkdirSync(ttsDir, { recursive: true });
   }
-  const { data, ext } = await getTTSAudio(text, config);
+  const { data, ext } = await getTTSAudio(text, speed, config);
   const audioPath = path.join(ttsDir, audioName + ext);
   fs.writeFileSync(audioPath, data);
   return audioPath;
 };
 
-const getTTSAudio = async (text, config) => {
+const getTTSAudio = async (text, speed, config) => {
   const url = config.url || "http://127.0.0.1:8972/tts";
   const ref = config.ref || "voice_01";
   const headers = { "Content-Type": "application/json" };
@@ -27,6 +27,14 @@ const getTTSAudio = async (text, config) => {
     headers.Authorization = `Bearer ${config.token}`;
   }
   const payload = { text, ref };
+  // speed 是百分比偏移：0 = 正常，50 = 快 50%（1.5x），-50 = 慢 50%（0.5x）。
+  // 服务端 /tts 的 speech_speed 需要乘数（1.0 = 正常，>0），这里换算过去。
+  if (typeof speed === "number" && Number.isFinite(speed)) {
+    const multiplier = 1 + speed / 100;
+    if (multiplier > 0) {
+      payload.speed = multiplier;
+    }
+  }
   // 可选：mp3 能显著减小跨网传输体积；emo 为 8 维情绪向量
   if (typeof config.format === "string") {
     payload.format = config.format;
